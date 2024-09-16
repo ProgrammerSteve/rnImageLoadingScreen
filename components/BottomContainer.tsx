@@ -23,8 +23,9 @@ export default BottomContainer
 
 const styles=StyleSheet.create({
     bottomContainer:{
-        position:"absolute",
-        bottom:0,
+        // position:"absolute",
+        // bottom:0,
+        marginTop:-40,
         borderTopLeftRadius:40,
         borderTopRightRadius:40,
         padding:20,

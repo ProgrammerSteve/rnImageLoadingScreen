@@ -5,6 +5,7 @@ import BottomContainer from './components/BottomContainer';
 export default function App() {
   return (
     <View style={styles.container}>
+      <View style={{flex:1,backgroundColor:"red", width:"100%"}}/>
       <BottomContainer/>
     </View>
   );
