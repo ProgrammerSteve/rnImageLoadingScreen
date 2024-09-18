@@ -18,6 +18,19 @@ const BubbleStepper=({numBubbles,selectedBubble}:BubbleStepperProps)=>{
 
 export default BubbleStepper
 
+
+
+interface StepProps{
+    isSelected:boolean;
+}
+const Step=({isSelected}:StepProps)=>{
+    const selectedStyle:ViewStyle={
+        backgroundColor:"#ED5929"
+    }
+    return(<View style={[styles.bubble, isSelected&&selectedStyle]}/>)
+}
+
+
 const styles=StyleSheet.create({
     bubbleContainer:{
         flexDirection:"row",
@@ -31,13 +44,3 @@ const styles=StyleSheet.create({
         backgroundColor:"#CCCCCC"
     }
 })
-
-interface StepProps{
-    isSelected:boolean;
-}
-const Step=({isSelected}:StepProps)=>{
-    const selectedStyle:ViewStyle={
-        backgroundColor:"#ED5929"
-    }
-    return(<View style={[styles.bubble, isSelected&&selectedStyle]}/>)
-}
