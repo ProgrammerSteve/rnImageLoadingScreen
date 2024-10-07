@@ -1,9 +1,13 @@
-import { View, StyleSheet } from "react-native"
+import { View, StyleSheet, Text } from "react-native"
 import HeaderBodyText from "./HeaderBodyText"
 import BubbleStepper from "./BubbleStepper"
 import ContinueBtn from "./ContinueBtn"
 
-const BottomContainer=()=>{
+interface Props{
+    imgIndex:number;
+}
+
+const BottomContainer=({imgIndex}:Props)=>{
     return(
     <View style={styles.bottomContainer}>
         <HeaderBodyText
@@ -11,7 +15,7 @@ const BottomContainer=()=>{
             body="The new networking app to change your entire experience. Create meangingful connections. Attend events. Develop a network."
         />
         <View style={{width:"30%"}}>
-        <BubbleStepper numBubbles={3} selectedBubble={0}/>
+        <BubbleStepper numBubbles={3} selectedBubble={imgIndex}/>
         </View>
         <ContinueBtn/>
 
