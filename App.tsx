@@ -1,4 +1,13 @@
-import { StyleSheet, View, Dimensions, LayoutChangeEvent } from "react-native";
+//    https://gl-transitions.com/editor/LinearBlur
+//    https://www.youtube.com/watch?v=aGsN8b9aHYI
+
+import {
+  StyleSheet,
+  View,
+  Dimensions,
+  LayoutChangeEvent,
+  Platform,
+} from "react-native";
 import {
   GestureDetector,
   Gesture,
@@ -14,8 +23,9 @@ import {
   ImageShader,
   Shader,
   Skia,
-  SkImage,
+  Text,
   useImage,
+  useFont,
 } from "@shopify/react-native-skia";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 const { width, height } = Dimensions.get("window");
@@ -29,13 +39,14 @@ const source = Skia.RuntimeEffect.Make(`
   vec4 getFromColor(vec2 p) {
     return image2.eval(p * resolution);
   }
-  
   vec4 getToColor(vec2 p) {
     return image1.eval(p * resolution);
   }
 
   float intensity = 0.1;
   const int passes = 6;
+
+
   vec4 transition(vec2 uv) {
     vec4 c1 = vec4(0.0);
     vec4 c2 = vec4(0.0);
@@ -66,11 +77,18 @@ const source = Skia.RuntimeEffect.Make(`
 
 export default function App() {
   const [imgIndexState, setImgIndexState] = useState(0);
+  const [toggleDom, setToggleDom]=useState(true)
   const imgIndex = useSharedValue(0);
+  const imgIndexBuffer = useSharedValue(0);
   const progress = useSharedValue(0);
-  const [isTimerRunning, setIsTimerRunning] = useState(true);
-  const intervalRef: { current: NodeJS.Timeout | null } = useRef(null);
+  const direction = useSharedValue(1);
 
+  const activateToggleDom=()=>setToggleDom(!toggleDom)
+
+  // const [isTimerRunning, setIsTimerRunning] = useState(true);
+  // const intervalRef: { current: NodeJS.Timeout | null } = useRef(null);
+
+  const font = useFont(require("./lockwood-free.ttf"), 20);
   const [canvasLayout, setCanvasLayout] = useState({
     x: 0,
     y: 0,
@@ -85,69 +103,96 @@ export default function App() {
 
   // Load images
   let images = [
-    useImage("https://s1.1zoom.me/big0/553/Cats_Kittens_Glance_Grey_480466.jpg"),
-    useImage("https://i.pinimg.com/originals/a4/ca/c0/a4cac0fced06ffafa4dd549576c29f37.jpg"),
-    useImage("https://hoponworld.com/wp-content/uploads/2021/02/view-of-wuji-tianyuan-temple-during-cherry-blossom-season-taiwan.jpg")
+    useImage(
+      "https://s1.1zoom.me/big0/553/Cats_Kittens_Glance_Grey_480466.jpg"
+    ),
+    useImage(
+      "https://i.pinimg.com/originals/a4/ca/c0/a4cac0fced06ffafa4dd549576c29f37.jpg"
+    ),
+    useImage(
+      "https://hoponworld.com/wp-content/uploads/2021/02/view-of-wuji-tianyuan-temple-during-cherry-blossom-season-taiwan.jpg"
+    ),
   ];
 
   const incrementImgIndex = () => {
+    //progress.value = 0;
     setImgIndexState((prev) => (prev + 1) % 3);
-    imgIndex.value = (imgIndex.value + 1) % 3;
-  };
-
-  const startTransition = useCallback(() => {
     progress.value = 0;
-    progress.value = withTiming(1, { duration: 1000 }, (finished) => {
-      if (finished) {
-        runOnJS(incrementImgIndex)();
-      }
-    });
-  }, [progress, incrementImgIndex]);
-
-  const startTimer = useCallback(() => {
-    if (!intervalRef.current) {
-      intervalRef.current = setInterval(() => {
-        if (isTimerRunning) {
-          startTransition();
-        }
-      }, 3000);
-    }
-  }, [isTimerRunning, startTransition]);
-
-  const stopTimer = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
+        imgIndexBuffer.value=(imgIndexBuffer.value+1)%3
+    
+    //progress.value=0
+    //imgIndex.value = (imgIndex.value + 1) % 3;
+  };
+  const decrementImgIndex = () => {
+    //progress.value = 0;
+    setImgIndexState((prev) => (prev - 1 + 3) % 3);
+    progress.value = 0;
+        imgIndexBuffer.value=(imgIndexBuffer.value-1+3)%3
+    
+    //progress.value=0
+    //imgIndex.value = (imgIndex.value - 1 + 3) % 3;
   };
 
-  useEffect(() => {
-    startTimer();
-    return () => stopTimer();
-  }, [isTimerRunning]);
+  // const startTransition = useCallback(() => {
+  //   progress.value = withTiming(1, { duration: 1000 }, (finished) => {
+  //     if (finished) {
+  //       imgIndex.value = (imgIndex.value + 1) % 3;
+  //       runOnJS(incrementImgIndex)();
+  //     }
+  //   });
 
+  // }, [progress, incrementImgIndex]);
+  // const startTimer = useCallback(() => {
+  //   if (!intervalRef.current) {
+  //     intervalRef.current = setInterval(() => {
+  //       if (isTimerRunning) {
+  //         startTransition();
+  //       }
+  //     }, 3000);
+  //   }
+  // }, [isTimerRunning, startTransition]);
+
+  // const stopTimer = () => {
+  //   if (intervalRef.current) {
+  //     clearInterval(intervalRef.current);
+  //     intervalRef.current = null;
+  //   }
+  // };
+  // useEffect(() => {
+  //   startTimer();
+  //   return () => stopTimer();
+  // }, [isTimerRunning]);
+  
   const swipeRightGesture = Gesture.Fling()
     .direction(Directions.RIGHT)
+    .onBegin(()=>{
+      direction.value = 1;
+      progress.value = 0;
+    })
     .onEnd(() => {
-      runOnJS(stopTimer)();
-      progress.value = withTiming(1, { duration: 500 }, () => {
-        progress.value = 0;
+      // runOnJS(stopTimer)();
+      progress.value = withTiming(1, { duration: 750 }, () => {
+        //runOnJS(incrementImgIndex)();
+        imgIndex.value=(imgIndex.value+1)%3
         runOnJS(incrementImgIndex)();
       });
     });
 
   const swipeLeftGesture = Gesture.Fling()
     .direction(Directions.LEFT)
+    .onBegin(()=>{
+      direction.value = -1;
+      progress.value = 0;
+    })
     .onEnd(() => {
-      runOnJS(stopTimer)();
-      progress.value = withTiming(1, { duration: 500 }, () => {
-        progress.value = 0;
-        runOnJS(incrementImgIndex)();
+      // runOnJS(stopTimer)();
+      progress.value = withTiming(1, { duration: 750 }, () => {
+        direction.value = 1;
+        imgIndex.value = (imgIndex.value - 1 + 3) % 3;
+        runOnJS(decrementImgIndex)();
       });
     });
-
   const composed = Gesture.Simultaneous(swipeRightGesture, swipeLeftGesture);
-
   const uniforms = useDerivedValue(() => ({
     progress: progress.value,
     resolution: [width, height],
@@ -157,20 +202,24 @@ export default function App() {
     <GestureHandlerRootView style={styles.container}>
       <GestureDetector gesture={composed}>
         <View style={{ flex: 1, width: "100%" }}>
-          <Canvas onLayout={handleCanvasLayout} style={{ flex: 1, width: "100%" }}>
+          <Canvas
+            onLayout={handleCanvasLayout}
+            style={{ flex: 1, width: "100%" }}
+          >
             {images[imgIndex.value] && images[(imgIndex.value + 1) % 3] ? (
               <Fill>
                 <Shader source={source!} uniforms={uniforms}>
                   <ImageShader
-                    image={images[imgIndex.value]}
+                    image={images[(imgIndexBuffer.value + direction.value + 3) % 3]}
                     fit="cover"
                     width={canvasLayout.width}
                     height={canvasLayout.height}
                     x={0}
                     y={0}
                   />
+
                   <ImageShader
-                    image={images[(imgIndex.value + 1) % 3]}
+                    image={images[imgIndex.value]}
                     fit="cover"
                     width={canvasLayout.width}
                     height={canvasLayout.height}
@@ -180,8 +229,14 @@ export default function App() {
                 </Shader>
               </Fill>
             ) : null}
+            <Text
+              font={font}
+              text={`imgIndexValue:${imgIndex.value}`}
+              x={0}
+              y={20}
+            />
           </Canvas>
-          <BottomContainer imgIndex={imgIndexState} />
+          <BottomContainer imgIndex={imgIndex.value} />
         </View>
       </GestureDetector>
     </GestureHandlerRootView>
