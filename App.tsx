@@ -179,19 +179,19 @@ export default function App() {
     });
 
   const swipeLeftGesture = Gesture.Fling()
-    .direction(Directions.LEFT)
-    .onBegin(()=>{
-      direction.value = -1;
-      progress.value = 0;
-    })
-    .onEnd(() => {
-      // runOnJS(stopTimer)();
-      progress.value = withTiming(1, { duration: 750 }, () => {
-        direction.value = 1;
-        imgIndex.value = (imgIndex.value - 1 + 3) % 3;
-        runOnJS(decrementImgIndex)();
-      });
+  .direction(Directions.LEFT)
+  .onBegin(()=>{
+    direction.value = 1;
+    progress.value = 0;
+  })
+  .onEnd(() => {
+    // runOnJS(stopTimer)();
+    progress.value = withTiming(1, { duration: 750 }, () => {
+      //runOnJS(incrementImgIndex)();
+      imgIndex.value=(imgIndex.value+1)%3
+      runOnJS(incrementImgIndex)();
     });
+  });
   const composed = Gesture.Simultaneous(swipeRightGesture, swipeLeftGesture);
   const uniforms = useDerivedValue(() => ({
     progress: progress.value,
