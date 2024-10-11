@@ -14,18 +14,13 @@ import {
   Directions,
 } from "react-native-gesture-handler";
 import BottomContainer from "./components/BottomContainer";
-import { runOnJS, withTiming } from "react-native-reanimated";
+import { runOnJS, withTiming,cancelAnimation } from "react-native-reanimated";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import {
-  Canvas,
-  Fill,
-  ImageShader,
-  Shader,
-  Skia,
-  Text,
-  useImage,
-  useFont,
+  Canvas,Fill,
+  ImageShader,Shader,Skia,
+  Text,useImage,useFont,
 } from "@shopify/react-native-skia";
 import { useDerivedValue, useSharedValue } from "react-native-reanimated";
 const { width, height } = Dimensions.get("window");
@@ -77,18 +72,10 @@ const source = Skia.RuntimeEffect.Make(`
 
 export default function App() {
   const [imgIndexState, setImgIndexState] = useState(0);
-  const [toggleDom, setToggleDom]=useState(true)
-  const imgIndex = useSharedValue(0);
-  const imgIndexBuffer = useSharedValue(0);
+  const [current, next] = [useSharedValue(0), useSharedValue(1)];
   const progress = useSharedValue(0);
-  const direction = useSharedValue(1);
 
-  const activateToggleDom=()=>setToggleDom(!toggleDom)
-
-  // const [isTimerRunning, setIsTimerRunning] = useState(true);
-  // const intervalRef: { current: NodeJS.Timeout | null } = useRef(null);
-
-  const font = useFont(require("./lockwood-free.ttf"), 20);
+  //const font = useFont(require("./lockwood-free.ttf"), 20);
   const [canvasLayout, setCanvasLayout] = useState({
     x: 0,
     y: 0,
@@ -101,7 +88,6 @@ export default function App() {
     setCanvasLayout({ x, y, width, height });
   }, []);
 
-  // Load images
   let images = [
     useImage(
       "https://s1.1zoom.me/big0/553/Cats_Kittens_Glance_Grey_480466.jpg"
@@ -114,34 +100,134 @@ export default function App() {
     ),
   ];
 
-  const incrementImgIndex = () => {
-    //progress.value = 0;
-    setImgIndexState((prev) => (prev + 1) % 3);
-    progress.value = 0;
-        imgIndexBuffer.value=(imgIndexBuffer.value+1)%3
-    
-    //progress.value=0
-    //imgIndex.value = (imgIndex.value + 1) % 3;
-  };
-  const decrementImgIndex = () => {
-    //progress.value = 0;
-    setImgIndexState((prev) => (prev - 1 + 3) % 3);
-    progress.value = 0;
-        imgIndexBuffer.value=(imgIndexBuffer.value-1+3)%3
-    
-    //progress.value=0
-    //imgIndex.value = (imgIndex.value - 1 + 3) % 3;
-  };
+  const incrementImgIndex = useCallback(() => {
+    setImgIndexState(prevState => (prevState + 1) % images.length);
+    cancelAnimation(progress);
+    progress.value = 0
+  }, [progress]);
+
+  const swipeRightGesture = Gesture.Fling()
+  .direction(Directions.RIGHT)
+  .onFinalize(()=>{
+    progress.value = withTiming(1, { duration: 650 }, (finished,) => {
+      if(finished){
+        current.value = next.value;
+        next.value = (next.value + 1) % images.length;
+        runOnJS(incrementImgIndex)();        
+      }  
+    });
+  })
+  const swipeLeftGesture = Gesture.Fling()
+  .direction(Directions.LEFT)
+  .onFinalize(()=>{
+    progress.value = withTiming(1, { duration: 650 }, (finished,) => {
+      if(finished){
+        current.value = next.value;
+        next.value = (next.value + 1) % images.length;
+        runOnJS(incrementImgIndex)();        
+      }  
+    });
+  })
+  const swipeGestureComposed = Gesture.Simultaneous(swipeRightGesture, swipeLeftGesture);
+
+  const tapGesture= Gesture.Tap()
+  .onFinalize(()=>{
+    progress.value = withTiming(1, { duration: 650 }, (finished,) => {
+      if(finished){
+        current.value = next.value;
+        next.value = (next.value + 1) % images.length;
+        runOnJS(incrementImgIndex)();        
+      }  
+    });
+  })
+
+  const composedGesture= Gesture.Race(swipeGestureComposed,tapGesture)
+
+
+  const uniforms = useDerivedValue(() => ({
+    progress: progress.value,
+    resolution: [width, height],
+  }));
+
+  return (
+    <GestureHandlerRootView style={styles.container}>
+      <GestureDetector gesture={composedGesture}>
+        <View style={{ flex: 1, width: "100%" }}>
+          <Canvas
+            onLayout={handleCanvasLayout}
+            style={{ flex: 1, width: "100%" }}
+          >
+            {images[current.value] && images[next.value] ? (
+              <Fill>
+                <Shader source={source!} uniforms={uniforms}>
+                  <ImageShader
+                    image={images[next.value]}
+                    fit="cover"
+                    width={canvasLayout.width}
+                    height={canvasLayout.height}
+                    x={0}
+                    y={0}
+                  />
+                  <ImageShader
+                    image={images[current.value]}
+                    fit="cover"
+                    width={canvasLayout.width}
+                    height={canvasLayout.height}
+                    x={0}
+                    y={0}
+                  />
+                </Shader>
+              </Fill>
+            ) : null}
+            {/* <Text
+              font={font}
+              text={`imgIndexValue:${current.value} progress:${progress.value}`}
+              x={10}
+              y={40}
+            />
+            <Text
+              font={font}
+              text={`current:${current.value} next:${next.value}`}
+              x={10}
+              y={70}
+            /> */}
+          </Canvas>
+          <BottomContainer imgIndex={imgIndexState} />
+        </View>
+      </GestureDetector>
+    </GestureHandlerRootView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: "relative",
+    backgroundColor: "#f2f2f2",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+});
+
+
+
+
+
+  // const [isTimerRunning, setIsTimerRunning] = useState(true);
+  // const intervalRef: { current: NodeJS.Timeout | null } = useRef(null);
+
 
   // const startTransition = useCallback(() => {
-  //   progress.value = withTiming(1, { duration: 1000 }, (finished) => {
-  //     if (finished) {
-  //       imgIndex.value = (imgIndex.value + 1) % 3;
-  //       runOnJS(incrementImgIndex)();
-  //     }
-  //   });
-
+    // progress.value = withTiming(1, { duration: 650 }, (finished,) => {
+    //   if(finished){
+    //     current.value = next.value;
+    //     next.value = (next.value + 1) % images.length;
+    //     runOnJS(incrementImgIndex)();        
+    //   }  
+    // });
   // }, [progress, incrementImgIndex]);
+
+  
   // const startTimer = useCallback(() => {
   //   if (!intervalRef.current) {
   //     intervalRef.current = setInterval(() => {
@@ -162,93 +248,3 @@ export default function App() {
   //   startTimer();
   //   return () => stopTimer();
   // }, [isTimerRunning]);
-  
-  const swipeRightGesture = Gesture.Fling()
-    .direction(Directions.RIGHT)
-    .onBegin(()=>{
-      direction.value = 1;
-      progress.value = 0;
-    })
-    .onEnd(() => {
-      // runOnJS(stopTimer)();
-      progress.value = withTiming(1, { duration: 750 }, () => {
-        //runOnJS(incrementImgIndex)();
-        imgIndex.value=(imgIndex.value+1)%3
-        runOnJS(incrementImgIndex)();
-      });
-    });
-
-  const swipeLeftGesture = Gesture.Fling()
-  .direction(Directions.LEFT)
-  .onBegin(()=>{
-    direction.value = 1;
-    progress.value = 0;
-  })
-  .onEnd(() => {
-    // runOnJS(stopTimer)();
-    progress.value = withTiming(1, { duration: 750 }, () => {
-      //runOnJS(incrementImgIndex)();
-      imgIndex.value=(imgIndex.value+1)%3
-      runOnJS(incrementImgIndex)();
-    });
-  });
-  const composed = Gesture.Simultaneous(swipeRightGesture, swipeLeftGesture);
-  const uniforms = useDerivedValue(() => ({
-    progress: progress.value,
-    resolution: [width, height],
-  }));
-
-  return (
-    <GestureHandlerRootView style={styles.container}>
-      <GestureDetector gesture={composed}>
-        <View style={{ flex: 1, width: "100%" }}>
-          <Canvas
-            onLayout={handleCanvasLayout}
-            style={{ flex: 1, width: "100%" }}
-          >
-            {images[imgIndex.value] && images[(imgIndex.value + 1) % 3] ? (
-              <Fill>
-                <Shader source={source!} uniforms={uniforms}>
-                  <ImageShader
-                    image={images[(imgIndexBuffer.value + direction.value + 3) % 3]}
-                    fit="cover"
-                    width={canvasLayout.width}
-                    height={canvasLayout.height}
-                    x={0}
-                    y={0}
-                  />
-
-                  <ImageShader
-                    image={images[imgIndex.value]}
-                    fit="cover"
-                    width={canvasLayout.width}
-                    height={canvasLayout.height}
-                    x={0}
-                    y={0}
-                  />
-                </Shader>
-              </Fill>
-            ) : null}
-            <Text
-              font={font}
-              text={`imgIndexValue:${imgIndex.value}`}
-              x={0}
-              y={20}
-            />
-          </Canvas>
-          <BottomContainer imgIndex={imgIndex.value} />
-        </View>
-      </GestureDetector>
-    </GestureHandlerRootView>
-  );
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    position: "relative",
-    backgroundColor: "#f2f2f2",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-});
