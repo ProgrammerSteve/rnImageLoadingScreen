@@ -7,12 +7,18 @@ interface Props{
     imgIndex:number;
 }
 
+const textArray:string[]=[
+    "The new networking app to change your entire experience. Create meangingful connections. Attend events. Develop a network.",
+    "The new networking app to change your entire experience. Create meangingful connections. Attend events. Develop a network.",
+    "The new networking app to change your entire experience. Create meangingful connections. Attend events. Develop a network."
+]
+
 const BottomContainer=({imgIndex}:Props)=>{
     return(
     <View style={styles.bottomContainer}>
         <HeaderBodyText
             header="Explore your Network"
-            body="The new networking app to change your entire experience. Create meangingful connections. Attend events. Develop a network."
+            body={textArray[imgIndex]}
         />
         <View style={{width:"30%"}}>
         <BubbleStepper numBubbles={3} selectedBubble={imgIndex}/>
@@ -27,8 +33,6 @@ export default BottomContainer
 
 const styles=StyleSheet.create({
     bottomContainer:{
-        // position:"absolute",
-        // bottom:0,
         marginTop:-40,
         borderTopLeftRadius:40,
         borderTopRightRadius:40,
